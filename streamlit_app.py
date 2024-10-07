@@ -1,32 +1,52 @@
-import os
+import io, json, os
+import streamlit as st
 from openai import OpenAI
 from dotenv import load_dotenv
 
+
 load_dotenv()
 
+st.title("Chat with Paul Graham")
 
-base_url = "https://api.aimlapi.com/v1"
-api_key = os.environ.get('AIML_API_KEY', "")
+aiml_api_key = os.environ.get("AIML_API_KEY", "")
+user_content = """
+how many Rs are there in the word strawberry
+think step by step
+"""
+openai_model = "o1-mini"
 
-system_prompt = "You are a travel agent. Be descriptive and helpful."
-user_prompt = "Tell me about San Francisco"
+client = OpenAI(
+    api_key=aiml_api_key,
+    base_url="https://api.aimlapi.com/",
+)
 
-api = OpenAI(api_key=api_key, base_url=base_url)
 
+if "openai_model" not in st.session_state:
+    st.session_state["openai_model"] = openai_model
 
-def main():
-    completion = api.chat.completions.create(
-        model="mistralai/Mistral-7B-Instruct-v0.2",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        temperature=0.7,
-        max_tokens=256,
-    )
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-    response = completion.choices[0].message.content
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-    print("User:", user_prompt)
-    print("AI:", response)
+if prompt := st.chat_input("What is up?"):
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
 
+    with st.chat_message("assistant"):
+        chat_completion = client.chat.completions.create(
+            model=st.session_state["openai_model"],
+            messages=[
+                {"role": m["role"], "content": m["content"]}
+                for m in st.session_state.messages
+            ],
+            max_tokens=2000,
+            stream=False,
+        )
+        response = chat_completion.choices[0].message.content
+        st.markdown(response)
+        # response = st.write_stream(response)
+    st.session_state.messages.append({"role": "assistant", "content": response})
