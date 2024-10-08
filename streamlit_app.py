@@ -43,6 +43,8 @@ vector_search = MongoDBAtlasVectorSearch(
 
 st.title("Get some Founder Mode from PG")
 
+st.markdown("I'm trained on all of PG's essays and public appearances spiced up with some extra founder mode")
+
 aiml_api_key = os.environ.get("AIML_API_KEY", "")
 
 openai_model = "o1-mini"
