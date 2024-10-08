@@ -41,9 +41,9 @@ vector_search = MongoDBAtlasVectorSearch(
     relevance_score_fn="cosine"
 )   
 
-st.title("Get some Founder Mode from PG")
+st.title("Get some Founder Mode")
 
-st.markdown("I'm trained on all of PG's essays and public appearances, spiced up with some founder mode")
+st.markdown("Ive devoured all content from PG and spiced it up with some friday fun...")
 
 aiml_api_key = os.environ.get("AIML_API_KEY", "")
 
