@@ -1,4 +1,6 @@
 import os
+import time
+import base64
 import streamlit as st
 from dotenv import load_dotenv
 import uuid
@@ -7,6 +9,7 @@ from langchain_openai import OpenAIEmbeddings
 from pymongo import MongoClient
 from openai import OpenAI
 from elevenlabs import ElevenLabs, VoiceSettings
+from mutagen.mp3 import MP3
 
 load_dotenv()
 
@@ -71,11 +74,32 @@ def text_to_speech_file(text) -> str:
 
     print(f"{save_file_path}: A new audio file was saved successfully!")
     return save_file_path
+
+def autoplay_audio(save_file_path):
+    # Get the length of the audio file
+    audio = MP3(save_file_path)
+    audio_length = audio.info.length  # length in seconds
+
+    # Read and encode the audio file in base64
+    with open(save_file_path, "rb") as f:
+        data = f.read()
+        b64 = base64.b64encode(data).decode()
+        md = f"""
+            <audio controls autoplay="true">
+            <source src="data:audio/mp3;base64,{b64}" type="audio/mp3">
+            </audio>
+            """
+        st.markdown(md, unsafe_allow_html=True)
+
+    # Pause for the length of the audio file
+    time.sleep(audio_length)
+
 from PIL import Image
 
 # Paths for images
 static_image_path = "images/paul.png"  # Path to your static image
 gif_path = "images/paul.gif"  # Path to your GIF
+speaking_gif_path = "images/paul_speaking.gif"  # Path to your speaking GIF
 # Load the image
 static_image = Image.open(static_image_path)
 
@@ -161,7 +185,9 @@ if prompt := st.chat_input("Hi, I'm Paul Graham. Want some founder mode?"):
         print(references)
         if enable_audio:
             audio_file_path = text_to_speech_file(response)
-            st.audio(audio_file_path)
+            icon.empty()
+            icon.image(speaking_gif_path)
+            autoplay_audio(audio_file_path)
         # response = st.write_stream(response)
     st.session_state['processing'] = False
     icon.empty()
