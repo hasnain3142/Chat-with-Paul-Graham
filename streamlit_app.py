@@ -63,7 +63,7 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-if prompt := st.chat_input("Hi, I'm Paul Graham. How can I help you today?"):
+if prompt := st.chat_input("Hi, I'm Paul Graham. Want some founder mode?"):
     with st.chat_message("user"):
         st.markdown(prompt)
         response = client.embeddings.create(
