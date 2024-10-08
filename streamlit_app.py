@@ -41,7 +41,7 @@ vector_search = MongoDBAtlasVectorSearch(
     relevance_score_fn="cosine"
 )   
 
-st.title("Chat with Paul Graham")
+st.title("Get some Founder Mode from PG")
 
 aiml_api_key = os.environ.get("AIML_API_KEY", "")
 
