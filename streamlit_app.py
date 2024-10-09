@@ -54,7 +54,7 @@ audio_client = ElevenLabs(api_key=audio_api_key)
 # Function to convert text to speech and save as a file
 def text_to_speech_file(text) -> str:
     response = audio_client.text_to_speech.convert(
-        voice_id="5Q0t7uMcjvnagumLfvZi",
+        voice_id="9jY6gWF6lRlG4sdUDc6w",
         optimize_streaming_latency="0",
         output_format="mp3_22050_32",
         text=text,
