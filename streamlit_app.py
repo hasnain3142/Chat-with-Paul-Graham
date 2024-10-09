@@ -10,21 +10,20 @@ from pymongo import MongoClient
 from openai import OpenAI
 from elevenlabs import ElevenLabs, VoiceSettings
 from mutagen.mp3 import MP3
+from PIL import Image
 
 load_dotenv()
 
 mongodb_url = os.environ.get("MONGODB_URL", "")
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "") 
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 mongodb_database = "paul_graham"
 mongodb_collection = "data"
 
 # Audio API Key for ElevenLabs
 audio_api_key = os.environ.get("AUDIO_API_KEY", "")
 
-
 SYSTEM_PROMPT = """
 You are Paul Graham, a renowned entrepreneur, venture capitalist, and essayist. You are known for your insightful essays on startups, technology, and life. As a life coach, you provide thoughtful, practical, and often unconventional advice. You draw from your extensive experience in the startup world, your deep understanding of technology, and your philosophical insights to guide individuals in their personal and professional lives. Your advice is candid, direct, and aimed at helping people achieve their full potential. Keep your answers brief and to the point, no more than three short sentences each, while making the responses humorous and edgy. It's almost like you are high on cocaine. Also, sound angry.
-
 Here are some of your most relevant writings to draw from:
 {documents}
 
@@ -33,20 +32,18 @@ Query: {query}
 """
 
 client_mongo = MongoClient(mongodb_url)
-db = client_mongo[mongodb_database] 
-
-client_mongo = MongoClient(mongodb_url)
+db = client_mongo[mongodb_database]
 collection = db[mongodb_collection]
 embedding_client = OpenAIEmbeddings(api_key=OPENAI_API_KEY, timeout=60)
 
 vector_search = MongoDBAtlasVectorSearch(
-    collection = collection,
-    embedding = embedding_client,
+    collection=collection,
+    embedding=embedding_client,
     index_name="vector_index",
     text_key="content",
     embedding_key="values",
     relevance_score_fn="cosine"
-)   
+)
 
 # Audio-related client setup
 audio_client = ElevenLabs(api_key=audio_api_key)
@@ -76,7 +73,6 @@ def text_to_speech_file(text) -> str:
     return save_file_path
 
 def autoplay_audio(save_file_path):
-    # Get the length of the audio file
     audio = MP3(save_file_path)
     audio_length = audio.info.length  # length in seconds
 
@@ -94,8 +90,6 @@ def autoplay_audio(save_file_path):
     # Pause for the length of the audio file
     time.sleep(audio_length)
 
-from PIL import Image
-
 # Paths for images
 static_image_path = "images/paul.png"  # Path to your static image
 gif_path = "images/paul.gif"  # Path to your GIF
@@ -111,7 +105,7 @@ if 'processing' not in st.session_state:
 col1, col2 = st.columns([4, 1])  # Adjust the ratio of column widths
 # Title in the first column
 with col1:
-    st.title("Get some Founder Mode")# Add title directly below the image in the same column
+    st.title("Get some Founder Mode")  # Add title directly below the image in the same column
 
 # Image in the second column
 with col2:
@@ -121,18 +115,36 @@ with col2:
     else:
         icon.image(static_image)  # Display static image when idle
 
+st.markdown("I've devoured all content from PG and spiced it up with some Friday fun...")
 
-st.markdown("Ive devoured all content from PG and spiced it up with some friday fun...")
+# Sample Prompts Integration
+sample_prompts = [
+    "How do I find product-market fit for my startup?",
+    "What's the best way to raise funding for an early-stage startup?",
+    "What should I focus on as a first-time founder?",
+    "How do I know if my startup idea is good?",
+    "What are the common mistakes to avoid when building a startup?"
+]
+
+if 'sample_prompt_selected' not in st.session_state:
+    st.session_state.sample_prompt_selected = False
+
+# Create a grid layout for sample prompts
+cols = st.columns(3)  # Adjust the number of columns as needed
+for idx, prompt in enumerate(sample_prompts):
+    with cols[idx % 3]:  # This will distribute buttons across multiple columns
+        if st.button(prompt):  # Button to select the prompt
+            st.session_state.sample_prompt_selected = True
+            st.session_state.selected_prompt = prompt
+            st.rerun()
 
 aiml_api_key = os.environ.get("AIML_API_KEY", "")
-
 openai_model = "o1-mini"
 
 client = OpenAI(
     api_key=aiml_api_key,
     base_url="https://api.aimlapi.com/",
 )
-
 
 if "openai_model" not in st.session_state:
     st.session_state["openai_model"] = openai_model
@@ -146,7 +158,15 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-if prompt := st.chat_input("Hi, I'm Paul Graham. Want some founder mode?"):
+# Always display the chat input
+prompt_input = st.chat_input("Hi, I'm Paul Graham. Want some founder mode?")
+
+# Process input (either from sample prompt or user input)
+if st.session_state.sample_prompt_selected or prompt_input:
+    if st.session_state.sample_prompt_selected:
+        prompt_input = st.session_state.selected_prompt
+        st.session_state.sample_prompt_selected = False
+
     # Trigger the GIF by setting processing state to True
     st.session_state['processing'] = True
 
@@ -154,29 +174,29 @@ if prompt := st.chat_input("Hi, I'm Paul Graham. Want some founder mode?"):
     icon.empty()
     icon.image(gif_path)
     with st.chat_message("user"):
-        st.markdown(prompt)
+        st.markdown(prompt_input)
         response = client.embeddings.create(
                 model="text-embedding-ada-002",
-                input=prompt)
-        search_results = vector_search.similarity_search(query=prompt, k=5, embeddings=response.data[0].embedding)
-        content_rag=''
+                input=prompt_input)
+        search_results = vector_search.similarity_search(query=prompt_input, k=5, embeddings=response.data[0].embedding)
+        content_rag = ''
         references = ""
         for idx, item in enumerate(search_results):
-            content_rag=content_rag+f"Document no: {idx+1}\nContent:{item.page_content}\n\n"
-            references += item.metadata['url'] + "\n" 
-        rag_prompt = SYSTEM_PROMPT.format(query=prompt, documents=content_rag)
-        
-        st.session_state.messages.append({"role": "user", "content": prompt})
+            content_rag += f"Document no: {idx + 1}\nContent: {item.page_content}\n\n"
+            references += item.metadata['url'] + "\n"
+        rag_prompt = SYSTEM_PROMPT.format(query=prompt_input, documents=content_rag)
+
+        st.session_state.messages.append({"role": "user", "content": prompt_input})
 
     with st.chat_message("assistant"):
-        messages_temp=[
-                {"role": m["role"], "content": m["content"]}
-                for m in st.session_state.messages[:-1]
-            ]
+        messages_temp = [
+            {"role": m["role"], "content": m["content"]}
+            for m in st.session_state.messages[:-1]
+        ]
         messages_temp.append({"role": "user", "content": rag_prompt})
         chat_completion = client.chat.completions.create(
             model=st.session_state["openai_model"],
-            messages = messages_temp,
+            messages=messages_temp,
             max_tokens=2000,
             stream=False,
         )
@@ -188,8 +208,23 @@ if prompt := st.chat_input("Hi, I'm Paul Graham. Want some founder mode?"):
             icon.empty()
             icon.image(speaking_gif_path)
             autoplay_audio(audio_file_path)
-        # response = st.write_stream(response)
+
     st.session_state['processing'] = False
     icon.empty()
     icon.image(static_image)
     st.session_state.messages.append({"role": "assistant", "content": response})
+
+# Add borders to buttons with different colors
+for button in st.session_state.messages:
+    st.markdown(
+        f"""
+        <style>
+        .stButton > button {{
+            border: 2px solid red; /* Change to desired color */
+            border-radius: 5px;
+            margin: 5px;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
