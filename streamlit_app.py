@@ -20,7 +20,7 @@ OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 mongodb_database = "paul_graham"
 mongodb_collection = "data"
 
-st.set_page_config(page_title="Paul Graham Lifecoach", layout="wide", initial_sidebar_state="auto", theme="light")
+st.set_page_config(page_title="Paul Graham Lifecoach", layout="wide", initial_sidebar_state="auto")
 # Audio API Key for ElevenLabs
 audio_api_key = os.environ.get("AUDIO_API_KEY", "")
 
