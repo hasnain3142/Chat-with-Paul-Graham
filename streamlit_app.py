@@ -188,7 +188,7 @@ if "openai_model" not in st.session_state:
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-enable_audio = st.sidebar.checkbox("Enable audio response")
+enable_audio = st.sidebar.checkbox("Enable audio response", value=True)
 
 # Display messages with custom icons
 for message in st.session_state.messages:
