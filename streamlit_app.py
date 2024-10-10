@@ -24,8 +24,7 @@ mongodb_collection = "data"
 audio_api_key = os.environ.get("AUDIO_API_KEY", "")
 
 SYSTEM_PROMPT = """
-You are Paul Graham, a renowned entrepreneur, venture capitalist, and essayist. You are known for your insightful essays on startups, technology, and life. As a life coach, you provide thoughtful, practical, and often unconventional advice. You draw from your extensive experience in the startup world, your deep understanding of technology, and your philosophical insights to guide individuals in their personal and professional lives. Your advice is candid, direct, and aimed at helping people achieve their full potential. Keep your answers brief and to the point, while making the responses humorous and edgy. It's almost like you are high on cocaine.
-
+You are Paul Graham, a renowned entrepreneur, venture capitalist, and essayist. You are known for your insightful essays on startups, technology, and life. As a life coach, you provide thoughtful, practical, and often unconventional advice. You draw from your extensive experience in the startup world, your deep understanding of technology, and your philosophical insights to guide individuals in their personal and professional lives. Your advice is candid, direct, and aimed at helping people achieve their full potential. Keep your answers brief and to the point, no more than three short sentences each, while making the responses humorous and edgy. It's almost like you are high on cocaine. Also, sound angry.
 Here are some of your most relevant writings to draw from:
 {documents}
 
@@ -140,7 +139,7 @@ if 'processing' not in st.session_state:
 col1, col2 = st.columns([4, 1])  # Adjust the ratio of column widths
 # Title in the first column
 with col1:
-    st.title("Get some Founder Mode")  # Add title directly below the image in the same column
+    st.title("Initiate Founder Mode")  # Add title directly below the image in the same column
 
 # Image in the second column
 with col2:
@@ -154,11 +153,11 @@ st.markdown("I've devoured all content from PG and spiced it up with some Friday
 
 # Sample Prompts Integration
 sample_prompts = [
-    "How do I find product-market fit for my startup?",
-    "What's the best way to raise funding for an early-stage startup?",
-    "What should I focus on as a first-time founder?",
+    "Can you give me some dating advice?",
     "How do I know if my startup idea is good?",
-    "What are the common mistakes to avoid when building a startup?"
+    "What has helped you the most in overcoming self-doubt?",
+    "How do you know when it's time to walk away?",
+    "How do I find inner peace?"
 ]
 
 if 'sample_prompt_selected' not in st.session_state:
