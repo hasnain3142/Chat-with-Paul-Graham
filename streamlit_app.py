@@ -11,6 +11,7 @@ from openai import OpenAI
 from elevenlabs import ElevenLabs, VoiceSettings
 from mutagen.mp3 import MP3
 from PIL import Image
+from pathlib import Path
 
 load_dotenv()
 
@@ -23,7 +24,8 @@ mongodb_collection = "data"
 audio_api_key = os.environ.get("AUDIO_API_KEY", "")
 
 SYSTEM_PROMPT = """
-You are Paul Graham, a renowned entrepreneur, venture capitalist, and essayist. You are known for your insightful essays on startups, technology, and life. As a life coach, you provide thoughtful, practical, and often unconventional advice. You draw from your extensive experience in the startup world, your deep understanding of technology, and your philosophical insights to guide individuals in their personal and professional lives. Your advice is candid, direct, and aimed at helping people achieve their full potential. Keep your answers brief and to the point, no more than three short sentences each, while making the responses humorous and edgy. It's almost like you are high on cocaine. Also, sound angry.
+You are Paul Graham, a renowned entrepreneur, venture capitalist, and essayist. You are known for your insightful essays on startups, technology, and life. As a life coach, you provide thoughtful, practical, and often unconventional advice. You draw from your extensive experience in the startup world, your deep understanding of technology, and your philosophical insights to guide individuals in their personal and professional lives. Your advice is candid, direct, and aimed at helping people achieve their full potential. Keep your answers brief and to the point, while making the responses humorous and edgy. It's almost like you are high on cocaine.
+
 Here are some of your most relevant writings to draw from:
 {documents}
 
@@ -97,6 +99,39 @@ speaking_gif_path = "images/paul_speaking.gif"  # Path to your speaking GIF
 # Load the image
 static_image = Image.open(static_image_path)
 
+# Function to load and encode images
+def img_to_base64(img_path):
+    with open(img_path, "rb") as img_file:
+        return base64.b64encode(img_file.read()).decode('utf-8')
+
+# Load custom icons
+user_icon = img_to_base64("images/user.png")
+assistant_icon = img_to_base64("images/paul_ai.png")
+
+# Custom CSS for chat interface
+st.markdown("""
+<style>
+.user-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin-right: 10px;
+}
+.assistant-avatar {
+    width: 50px auto ;
+    height: 50px auto ;
+    border-radius: 50%;
+    overflow: hidden;
+    margin-right: 10px;
+}
+.stChatMessage {
+    padding-bottom: 20px;
+    padding-top: 10px;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # Set up session state for prompt processing
 if 'processing' not in st.session_state:
     st.session_state['processing'] = False
@@ -154,9 +189,26 @@ if "messages" not in st.session_state:
 
 enable_audio = st.sidebar.checkbox("Enable audio response")
 
+# Display messages with custom icons
 for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+    if message["role"] == "user":
+        st.markdown(f"""
+        <div style="display: flex; align-items: center;">
+            <img src="data:image/png;base64,{user_icon}" class="user-avatar">
+            <div style="background-color: #F0F2F6; border-radius: 10px; padding: 10px;">
+                {message["content"]}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown(f"""
+        <div style="display: flex; align-items: center;">
+            <img src="data:image/png;base64,{assistant_icon}" class="assistant-avatar">
+            <div style="background-color: #E8F0FE; border-radius: 10px; padding: 10px;">
+                {message["content"]}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
 # Always display the chat input
 prompt_input = st.chat_input("Hi, I'm Paul Graham. Want some founder mode?")
@@ -173,41 +225,59 @@ if st.session_state.sample_prompt_selected or prompt_input:
     # Update the image to GIF while processing
     icon.empty()
     icon.image(gif_path)
-    with st.chat_message("user"):
-        st.markdown(prompt_input)
-        response = client.embeddings.create(
-                model="text-embedding-ada-002",
-                input=prompt_input)
-        search_results = vector_search.similarity_search(query=prompt_input, k=5, embeddings=response.data[0].embedding)
-        content_rag = ''
-        references = ""
-        for idx, item in enumerate(search_results):
-            content_rag += f"Document no: {idx + 1}\nContent: {item.page_content}\n\n"
-            references += item.metadata['url'] + "\n"
-        rag_prompt = SYSTEM_PROMPT.format(query=prompt_input, documents=content_rag)
+    
+    # Display user message with custom icon
+    st.markdown(f"""
+    <div style="display: flex; align-items: center;">
+        <img src="data:image/png;base64,{user_icon}" class="user-avatar">
+        <div style="background-color: #F0F2F6; border-radius: 10px; padding: 10px;">
+            {prompt_input}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    response = client.embeddings.create(
+            model="text-embedding-ada-002",
+            input=prompt_input)
+    search_results = vector_search.similarity_search(query=prompt_input, k=5, embeddings=response.data[0].embedding)
+    content_rag = ''
+    references = ""
+    for idx, item in enumerate(search_results):
+        content_rag += f"Document no: {idx + 1}\nContent: {item.page_content}\n\n"
+        references += item.metadata['url'] + "\n"
+    rag_prompt = SYSTEM_PROMPT.format(query=prompt_input, documents=content_rag)
 
-        st.session_state.messages.append({"role": "user", "content": prompt_input})
+    st.session_state.messages.append({"role": "user", "content": prompt_input})
 
-    with st.chat_message("assistant"):
-        messages_temp = [
-            {"role": m["role"], "content": m["content"]}
-            for m in st.session_state.messages[:-1]
-        ]
-        messages_temp.append({"role": "user", "content": rag_prompt})
-        chat_completion = client.chat.completions.create(
-            model=st.session_state["openai_model"],
-            messages=messages_temp,
-            max_tokens=2000,
-            stream=False,
-        )
-        response = chat_completion.choices[0].message.content
-        st.markdown(response)
-        print(references)
-        if enable_audio:
-            audio_file_path = text_to_speech_file(response)
-            icon.empty()
-            icon.image(speaking_gif_path)
-            autoplay_audio(audio_file_path)
+    messages_temp = [
+        {"role": m["role"], "content": m["content"]}
+        for m in st.session_state.messages[:-1]
+    ]
+    messages_temp.append({"role": "user", "content": rag_prompt})
+    chat_completion = client.chat.completions.create(
+        model=st.session_state["openai_model"],
+        messages=messages_temp,
+        max_tokens=2000,
+        stream=False,
+    )
+    response = chat_completion.choices[0].message.content
+    
+    # Display assistant message with custom icon
+    st.markdown(f"""
+    <div style="display: flex; align-items: center;">
+        <img src="data:image/png;base64,{assistant_icon}" class="assistant-avatar">
+        <div style="background-color: #E8F0FE; border-radius: 10px; padding: 10px;">
+            {response}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    print(references)
+    if enable_audio:
+        audio_file_path = text_to_speech_file(response)
+        icon.empty()
+        icon.image(speaking_gif_path)
+        autoplay_audio(audio_file_path)
 
     st.session_state['processing'] = False
     icon.empty()
