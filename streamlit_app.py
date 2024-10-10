@@ -31,8 +31,7 @@ Here are some of your most relevant writings to draw from:
 Respond to the following query with the wisdom and style of Paul Graham.
 Query: {query}
 """
-st.cache_data.clear()
-st.cache_resource.clear()
+
 
 client_mongo = MongoClient(mongodb_url)
 db = client_mongo[mongodb_database]
@@ -170,6 +169,7 @@ cols = st.columns(3)  # Adjust the number of columns as needed
 for idx, prompt in enumerate(sample_prompts):
     with cols[idx % 3]:  # This will distribute buttons across multiple columns
         if st.button(prompt):  # Button to select the prompt
+            st.cache_data.clear()
             st.session_state.sample_prompt_selected = True
             st.session_state.selected_prompt = prompt
             st.rerun()
