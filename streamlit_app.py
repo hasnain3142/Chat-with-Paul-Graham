@@ -31,6 +31,8 @@ Here are some of your most relevant writings to draw from:
 Respond to the following query with the wisdom and style of Paul Graham.
 Query: {query}
 """
+st.cache_data.clear()
+st.cache_resource.clear()
 
 client_mongo = MongoClient(mongodb_url)
 db = client_mongo[mongodb_database]
