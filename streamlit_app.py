@@ -156,7 +156,7 @@ st.markdown("I've devoured all content from PG and spiced it up with some Friday
 sample_prompts = [
     "Can you give me some dating advice?",
     "How do I know if my startup idea is good?",
-    "What has helped you the most in overcoming self-doubt?",
+    "Give me some pep talk",
     "How do you know when it's time to walk away?",
     "How do I find inner peace?"
 ]
