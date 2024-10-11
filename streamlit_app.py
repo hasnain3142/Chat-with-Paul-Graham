@@ -158,7 +158,6 @@ sample_prompts = [
     "Can you give me some dating advice?",
     "How do I know if my startup idea is good?",
     "Give me some pep talk",
-    "How do you know when it's time to walk away?",
     "How do I find inner peace?"
 ]
 
